@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
+import json
 
 from receiver import Receiver
 from transmitter import Transmitter
@@ -15,10 +16,28 @@ class DopplerData:
         self._labels = labels
 
     def export_to_csv(self, filename: str):
-        pass
+        file = open(filename, "w")
+        file.write("Transmitter Position, Transmitter Velocity, Transmitter Frequency, Receiver Position, Receiver Velocity, Observed Frequency, IsSolvable\n")
+        for i in range(len(self._receivers)):
+            receiver = self._receivers[i]
+            file.write(f"{self._transmitter._position}, {self._transmitter._velocity}, {self._transmitter._frequency}, {receiver._position}, {receiver._velocity}, {self._observed_frequencies[i]}, {self._labels[i]}\n")
+        file.close()
+
 
     def export_to_json(self, filename: str):
-        pass
+        data = {
+            "transmitter": { "position": self._transmitter._position.tolist(), "velocity": self._transmitter._velocity.tolist(), "frequency": self._transmitter._frequency },
+            "receivers": [],
+            "observed_frequencies": self._observed_frequencies,
+            "labels": self._labels
+        }
+
+        for receiver in self._receivers:
+            data["receivers"].append({ "position": receiver._position.tolist(), "velocity": receiver._velocity.tolist() })
+
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
+
 
 class DopplerGenerator:
     def __init__(self, receivers: list[Receiver], transmitter: Transmitter, propagation_behavior: PropagationBehavior, noise_behavior: NoiseBehavior):
@@ -54,13 +73,20 @@ class DopplerBuilder:
         self._noise_behavior = None
 
     def add_receiver(self, receiver: Receiver):
-        # todo: check that dimension aligns
+        if self._dimension is None:
+            self._dimension = receiver.get_dimension()
+        else:
+            assert self._dimension == receiver.get_dimension(), "Dimensions do not align"
 
         self._receivers.append(receiver)
         return self
     
     def set_transmitter(self, transmitter: Transmitter):
-        # todo: check that dimension aligns
+        if self._dimension is None:
+            self._dimension = transmitter.get_dimension()
+        else:
+            assert self._dimension == transmitter.get_dimension(), "Dimensions do not align"
+
         self._transmitter = transmitter
         return self
     
@@ -73,5 +99,5 @@ class DopplerBuilder:
         return self
     
     def build(self):
-        return DopplerGenerator(self, self._receivers, self._transmitter, 
+        return DopplerGenerator(self._receivers, self._transmitter, 
                                 self._propagation_behavior, self._noise_behavior)
