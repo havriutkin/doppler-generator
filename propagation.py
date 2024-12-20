@@ -17,7 +17,8 @@ class PropagationBehavior(ABC):
         distance = np.linalg.norm(receiver._position - transmitter._position)
         relative_position = receiver._position - transmitter._position
         relative_velocity = receiver._velocity - transmitter._velocity
-        return transmitter._frequency - (transmitter._frequency / self.speed) * np.dot(relative_velocity, relative_position) / distance
+        frequency = transmitter._frequency - (transmitter._frequency / self.speed) * np.dot(relative_velocity, relative_position) / distance
+        return frequency
 
 class SoundInAirPropagation(PropagationBehavior):
     def __init__(self):

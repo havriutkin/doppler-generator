@@ -9,35 +9,56 @@ from propagation import PropagationBehavior
 
 
 class DopplerData:
-    def __init__(self, receivers: list[Receiver], transmitter: Transmitter, observed_frequencies: list[float], labels: list[int] | None):
+    def __init__(self, receivers: list[Receiver], transmitter: Transmitter, observed_frequencies: list[float], label: int | None):
         self._receivers = receivers
         self._transmitter = transmitter
         self._observed_frequencies = observed_frequencies
-        self._labels = labels
+        self._label = label
 
-    def export_to_csv(self, filename: str):
-        file = open(filename, "w")
-        file.write("Transmitter Position, Transmitter Velocity, Transmitter Frequency, Receiver Position, Receiver Velocity, Observed Frequency, IsSolvable\n")
-        for i in range(len(self._receivers)):
-            receiver = self._receivers[i]
-            file.write(f"{self._transmitter._position}, {self._transmitter._velocity}, {self._transmitter._frequency}, {receiver._position}, {receiver._velocity}, {self._observed_frequencies[i]}, {self._labels[i]}\n")
-        file.close()
+    def get_label(self):
+        return self._label
 
-
-    def export_to_json(self, filename: str):
-        data = {
-            "transmitter": { "position": self._transmitter._position.tolist(), "velocity": self._transmitter._velocity.tolist(), "frequency": self._transmitter._frequency },
-            "receivers": [],
-            "observed_frequencies": self._observed_frequencies,
-            "labels": self._labels
+    def get_json(self):
+        return {
+            "transmitter": { "position": self._transmitter._position.tolist(),
+                                "velocity": self._transmitter._velocity.tolist(),
+                                "frequency": self._transmitter._frequency },
+            "receivers": [{ "position": self._receivers[i]._position.tolist(),
+                            "velocity": self._receivers[i]._velocity.tolist(),
+                            "observed_frequency": self._observed_frequencies[i] } for i in range(len(self._receivers))],
+            "label": self._label
         }
 
-        for receiver in self._receivers:
-            data["receivers"].append({ "position": receiver._position.tolist(), "velocity": receiver._velocity.tolist() })
+    def export_to_csv(self, filename: str):
+        with open(filename, "w") as file:
+            file.write("Transmitter Position, Transmitter Velocity, Transmitter Frequency, Receiver Position, Receiver Velocity, Observed Frequency, Label\n")
+            for i in range(len(self._observed_frequencies)):
+                file.write(f"{self._transmitter._position }, {self._transmitter._velocity}, {self._transmitter._frequency}, {self._receivers[i]._position}, {self._receivers[i]._velocity}, {self._observed_frequencies[i]}, {self._label}\n")
+
+    def export_to_json(self, filename: str):
+        data = self.get_json()
 
         with open(filename, "w") as file:
             json.dump(data, file, indent=4)
 
+class DopplerDataAggregator:
+    def __init__(self):
+        self._data: list[DopplerData] = []
+
+    def add_data(self, data: DopplerData):
+        self._data.append(data)
+        return self
+    
+    def export_to_json(self, filename: str):
+        data_list = []
+        for data in self._data:
+            data_list.append(data.get_json())
+
+        with open(filename, "w") as file:
+            json.dump(data_list, file, indent=4)
+
+    def get_data(self):
+        return self._data
 
 class DopplerGenerator:
     def __init__(self, receivers: list[Receiver], transmitter: Transmitter, propagation_behavior: PropagationBehavior, noise_behavior: NoiseBehavior):
@@ -50,19 +71,26 @@ class DopplerGenerator:
         data = []
         for receiver in self._receivers:
             observed_frequency = self._propagation_behavior.compute_observed_frequency(self._transmitter, receiver)
-            data.append(self._noise_behavior.add_noise(observed_frequency))
+            data.append(self._noise_behavior.add_noise(observed_frequency)[0])
         return DopplerData(self._receivers, self._transmitter, data, None)
     
-    def generate_data_with_labels(self, tolerance: float):
+    def generate_data_with_label(self, tolerance: float):
         # If noise is bigger than tolerance, label as 0, otherwise 1
         data = []
-        labels = []
+        label = 1
+        biggest_noise = 0
         for receiver in self._receivers:
             observed_frequency = self._propagation_behavior.compute_observed_frequency(self._transmitter, receiver)
-            noisy_observed_frequency = self._noise_behavior.add_noise(observed_frequency)
+            noisy_observed_frequency = self._noise_behavior.add_noise(observed_frequency)[0]
             data.append(noisy_observed_frequency)
-            labels.append(0 if np.abs(noisy_observed_frequency - observed_frequency) > tolerance else 1)
-        return DopplerData(self._receivers, self._transmitter, data, labels)
+            noise = abs(noisy_observed_frequency - observed_frequency)
+            if noise > biggest_noise:
+                biggest_noise = noise
+
+        if biggest_noise > tolerance:
+            label = 0
+
+        return DopplerData(self._receivers, self._transmitter, data, label)
     
 class DopplerBuilder:
     def __init__(self):
