@@ -8,11 +8,12 @@ from noise import NoiseBehavior
 from propagation import PropagationBehavior
 
 
-class DopplerData:
-    def __init__(self, receivers: list[Receiver], transmitter: Transmitter, observed_frequencies: list[float], label: int | None):
+class DopplerProblem:
+    def __init__(self, receivers: list[Receiver], transmitter: Transmitter, observed_frequencies: list[float], propagation_speed: float, label: int | None):
         self._receivers = receivers
         self._transmitter = transmitter
         self._observed_frequencies = observed_frequencies
+        self._propagation_speed = propagation_speed
         self._label = label
 
     def get_label(self):
@@ -41,11 +42,11 @@ class DopplerData:
         with open(filename, "w") as file:
             json.dump(data, file, indent=4)
 
-class DopplerDataAggregator:
+class DopplerProblemAggregator:
     def __init__(self):
-        self._data: list[DopplerData] = []
+        self._data: list[DopplerProblem] = []
 
-    def add_data(self, data: DopplerData):
+    def add_data(self, data: DopplerProblem):
         self._data.append(data)
         return self
     
@@ -67,12 +68,16 @@ class DopplerGenerator:
         self._propagation_behavior = propagation_behavior
         self._noise_behavior = noise_behavior
 
-    def generate_data(self):
+    def generate_data(self, pure: bool = False):
         data = []
         for receiver in self._receivers:
             observed_frequency = self._propagation_behavior.compute_observed_frequency(self._transmitter, receiver)
-            data.append(self._noise_behavior.add_noise(observed_frequency)[0])
-        return DopplerData(self._receivers, self._transmitter, data, None)
+            if pure:
+                data.append(observed_frequency)
+            else:
+                noisy_observed_frequency = self._noise_behavior.add_noise(observed_frequency)[0]
+                data.append(noisy_observed_frequency)
+        return DopplerProblem(self._receivers, self._transmitter, data, self._propagation_behavior.speed, None)
     
     def generate_data_with_label(self, tolerance: float):
         # If noise is bigger than tolerance, label as 0, otherwise 1
@@ -90,7 +95,7 @@ class DopplerGenerator:
         if biggest_noise > tolerance:
             label = 0
 
-        return DopplerData(self._receivers, self._transmitter, data, label)
+        return DopplerProblem(self._receivers, self._transmitter, data, self._propagation_behavior.speed, label)
     
 class DopplerBuilder:
     def __init__(self):

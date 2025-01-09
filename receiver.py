@@ -15,7 +15,7 @@ class ReceiverFactory:
     @staticmethod
     def create_random_receiver(dimension: int, min: int, max: int) -> Receiver:
         position = np.random.uniform(min, max, dimension)
-        velocity = np.random.uniform(min, max, dimension)
+        velocity = np.random.uniform(min/2, max/2, dimension)
         return Receiver(position, velocity)
     
     @staticmethod

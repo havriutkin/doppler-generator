@@ -16,12 +16,12 @@ class TransmitterFactory:
     @staticmethod
     def create_random_transmitter(dimension: int, min: int, max: int) -> Transmitter:
         position = np.random.uniform(min, max, dimension)
-        velocity = np.random.uniform(min, max, dimension)
+        velocity = np.random.uniform(min / 2, max / 2, dimension)
         frequency = np.random.uniform(1, 100)
         return Transmitter(position, velocity, frequency)
 
     @staticmethod
     def create_random_transmitter_with_frequency(dimension: int, min: int, max: int, frequency: float) -> Transmitter:
         position = np.random.uniform(min, max, dimension)
-        velocity = np.random.uniform(min, max, dimension)
+        velocity = np.random.uniform(min / 2, max / 2, dimension)
         return Transmitter(position, velocity, frequency)

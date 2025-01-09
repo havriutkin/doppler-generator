@@ -4,6 +4,8 @@ import numpy as np
 from receiver import Receiver
 from transmitter import Transmitter
 
+import logging
+
 class PropagationBehavior(ABC):
     def __init__(self, speed: float):
         self.speed = speed
@@ -13,11 +15,12 @@ class PropagationBehavior(ABC):
         pass
 
     def _doppler_effect(self, transmitter: Transmitter, receiver: Receiver):
-        # Shared Doppler effect formula logic
-        distance = np.linalg.norm(receiver._position - transmitter._position)
         relative_position = receiver._position - transmitter._position
         relative_velocity = receiver._velocity - transmitter._velocity
-        frequency = transmitter._frequency - (transmitter._frequency / self.speed) * np.dot(relative_velocity, relative_position) / distance
+        distance = np.sqrt(np.dot(relative_position, relative_position))
+        
+        frequency = transmitter._frequency * (1 - np.dot(relative_position, relative_velocity) / (distance * self.speed))
+
         return frequency
 
 class SoundInAirPropagation(PropagationBehavior):
@@ -41,3 +44,9 @@ class LightInAirPropagation(PropagationBehavior):
     def compute_observed_frequency(self, transmitter: Transmitter, receiver: Receiver):
         return self._doppler_effect(transmitter, receiver)
     
+class UnitPropagation(PropagationBehavior):
+    def __init__(self):
+        super().__init__(speed=1)  # m/s
+
+    def compute_observed_frequency(self, transmitter: Transmitter, receiver: Receiver):
+        return self._doppler_effect(transmitter, receiver)
