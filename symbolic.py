@@ -3,7 +3,7 @@ import numpy as np
 from transmitter import Transmitter, TransmitterFactory
 from receiver import ReceiverFactory, Receiver
 from propagation import PropagationBehavior, SoundInAirPropagation, UnitPropagation
-from noise import GaussianNoise
+from noise import GaussianNoise, NoNoise
 from termcolor import colored
 
 # ========== Set up a Doppler problem ==========
@@ -17,26 +17,31 @@ f_i = sp.symbols('f_i:5')
 x_i = sp.symbols('x_i:5')
 y_i = sp.symbols('y_i:5')
 
+NUM_OF_REC = 5
+NUM_OF_VAR = 4
+MIN = -100
+MAX = 100
+DIMENSION = 2
+SCALE = 0.0001
+
 # Define the equation and compute its Jacobian
-equation = c**2 * (f - fi)**2 * ((xi - x)**2 + (yi - y)**2) - f**2 * ((v_x * (xi - x) + v_y * (yi - y))**2)
+equation = SCALE * (c / f)**2 * (f - fi)**2 * ((xi - x)**2 + (yi - y)**2) - SCALE * ((v_x * (xi - x) + v_y * (yi - y))**2)
 jacobian = [sp.diff(equation, x), sp.diff(equation, y), sp.diff(equation, v_x), sp.diff(equation, v_y)]
 
 # Create the transmitter, receiver, and propagation objects
 transmitter_factory = TransmitterFactory()
 receiver_factory = ReceiverFactory()
-propagation = UnitPropagation() # Unit propagation speed for simplicity
+propagation = SoundInAirPropagation() # Unit propagation speed for simplicity
 frequency = 1000
 
-NUM_OF_REC = 5
-NUM_OF_VAR = 4
 
 # ========== Set up a Doppler problem ==========
 transmitter = transmitter_factory.create_random_transmitter_with_frequency(
-    dimension=2, 
-    min=-500, 
-    max=500, 
+    dimension=DIMENSION, 
+    min=MIN, 
+    max=MAX, 
     frequency=frequency)
-receivers = [receiver_factory.create_random_static_receiver(dimension=2, min=-500, max=500) 
+receivers = [receiver_factory.create_random_static_receiver(dimension=DIMENSION, min=MIN, max=MAX) 
              for _ in range(NUM_OF_REC)]
 
 # Create a Family of Doppler problems
@@ -56,7 +61,7 @@ for i in range(NUM_OF_REC):
 p0 = [propagation.compute_observed_frequency(transmitter, receiver) for receiver in receivers]
 
 # Add noise to the observed frequencies
-p1 = [GaussianNoise(noise_level=0.01).add_noise(frequency)[0] for frequency in p0]
+p1 = [GaussianNoise(noise_level=0.01).add_noise(frequency) for frequency in p0]
 
 # Instance of the family F with parameters p0 and p1
 Fp0 = [F[i].subs({fi: p0[i]}) for i, _ in enumerate(p0)]
@@ -85,7 +90,7 @@ dFp1_s0 = [[dFp1[i][j].subs({x: s0[0], y: s0[1], v_x: s0[2], v_y: s0[3]})
 dFp1_s0 = np.array(dFp1_s0, dtype=np.float64)
 
 # Find the delta by solving the linear system using least squares
-delta = np.linalg.lstsq(dFp1_s0, Fp1_s0, rcond=None)[0]
+delta = np.linalg.lstsq(dFp1_s0, -Fp1_s0, rcond=None)[0]
 
 s1 = [s0[i] + delta[i] for i in range(4)]
 

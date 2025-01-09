@@ -14,12 +14,14 @@ class PropagationBehavior(ABC):
     def compute_observed_frequency(self, transmitter: Transmitter, receiver: Receiver):
         pass
 
-    def _doppler_effect(self, transmitter: Transmitter, receiver: Receiver):
-        relative_position = receiver._position - transmitter._position
-        relative_velocity = receiver._velocity - transmitter._velocity
+    def _doppler_effect(self, transmitter: Transmitter, receiver: Receiver) -> np.float64:
+        relative_position = np.array(receiver._position - transmitter._position, dtype=np.float64)
+        relative_velocity = np.array(receiver._velocity - transmitter._velocity, dtype=np.float64)
         distance = np.sqrt(np.dot(relative_position, relative_position))
-        
-        frequency = transmitter._frequency * (1 - np.dot(relative_position, relative_velocity) / (distance * self.speed))
+        inv_distance = 1 / distance
+        inv_speed = 1 / self.speed
+
+        frequency = transmitter._frequency * (1 - np.dot(relative_velocity, relative_position) * inv_distance * inv_speed)
 
         return frequency
 

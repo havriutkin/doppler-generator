@@ -24,3 +24,11 @@ class ReceiverFactory:
         velocity = np.zeros(dimension)
         return Receiver(position, velocity)
     
+    @staticmethod
+    def create_random_static_normal_receiver(dimension: int, min: int, max: int) -> Receiver:
+        position = np.random.uniform(min, max, dimension)
+        position = position / np.linalg.norm(position)
+        velocity = np.zeros(dimension)
+        
+        return Receiver(position, velocity)
+    
