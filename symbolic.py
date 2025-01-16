@@ -24,7 +24,7 @@ MAX = 100
 DIMENSION = 2
 SCALE = 0.0001
 TOLERANCE = 0.1
-NUM_OF_SIMS = 100
+NUM_OF_SIMS = 10000
 
 # Define the equation and compute its Jacobian
 equation = (1 / f)**2 * (f - fi)**2 * ((xi - x)**2 + (yi - y)**2) - (1 / c)**2 * ((v_x * (xi - x) + v_y * (yi - y))**2)
@@ -38,7 +38,9 @@ frequency = 1000
 
 results = []
 label_count = {0: 0, 1: 0}
+print(colored("Starting generation process...", 'cyan')) 
 for i in range(NUM_OF_SIMS):
+    print(colored(f"\tGenerating sample {i+1}/{NUM_OF_SIMS}...", 'light_yellow'))
     # ========== Set up a Doppler problem ==========
     transmitter = transmitter_factory.create_random_transmitter_with_frequency(
         dimension=DIMENSION, 
