@@ -71,15 +71,17 @@ test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 class DopplerClassifier(nn.Module):
     def __init__(self):
         super(DopplerClassifier, self).__init__()
-        self.fc1 = nn.Linear(15, 15)
-        self.fc2 = nn.Linear(15, 15)
-        self.out = nn.Linear(15, 1)
+        self.fc1 = nn.Linear(15, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 16)
+        self.out = nn.Linear(16, 1)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
         x = self.sigmoid(self.out(x))
         return x
 
