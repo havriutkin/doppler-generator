@@ -62,13 +62,15 @@ class LabelByDistortion(LabelProcedure):
     def get_label(self, doppler_problem: DopplerProblem) -> int:
         doppler_problem.get_observed_frequencies()
         if np.random.rand() < self._chance:
-            new_freq = doppler_problem._observed_frequencies[0]
-            while new_freq == doppler_problem._observed_frequencies[0]:
+            index = np.random.randint(len(doppler_problem._observed_frequencies))
+            old_freq = doppler_problem._observed_frequencies[index]
+            new_freq = old_freq
+            while new_freq == old_freq:
                 new_freq = np.random.randint(1000)
-                print(f"Old freq: {doppler_problem._observed_frequencies[0]}")
-                print(f"New freq: {new_freq}")
                 
-            doppler_problem.update_observed_freq(0, new_freq)
+            doppler_problem.update_observed_freq(index, new_freq)
+
+            print(f"Updated freq at index {index} from {old_freq} to {new_freq}")
 
             return 0
         
